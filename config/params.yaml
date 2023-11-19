@@ -4,6 +4,8 @@ params:
   ros_topics:
     raw_image_topic: "/camera/color/image_raw"
     segmented_image_topic: "/camera/color/image_segment"
+    depth_image_topic: /camera/aligned_depth_to_color/image_raw
+    mapped_images_topic: /mapped_images
   model_params:
     model_name: "FastSAM"
     model_path: "include/FastSAM-s.pt"

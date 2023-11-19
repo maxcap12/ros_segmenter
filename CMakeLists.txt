@@ -14,6 +14,7 @@ add_message_files(
   Pixel.msg
   Mask.msg
   SegResult.msg
+  MappedImages.msg
 )
 
 generate_messages(
