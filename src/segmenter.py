@@ -2,24 +2,20 @@
 
 import rospy
 from sensor_msgs.msg import Image
-from segmenter_ros2.msg import SegResult, Mask, Pixel
+from segmenter_ros2.msg import SegResult, Mask, Pixel, MappedImages
 from output import fastSamVisualizer
 from cv_bridge import CvBridge, CvBridgeError
 from utils.helpers import cleanMemory, monitorParams
 from temp import init_params
 from torch import Tensor
 import numpy as np
+import time
 
 from detectron2.config import get_cfg
 from detectron2 import model_zoo
 from detectron2.engine import DefaultPredictor
 from detectron2.utils.visualizer import Visualizer
 from detectron2.data import MetadataCatalog
-
-import time
-import os
-import panopticfcn.detectron2.projects.PanopticFCN.panopticfcn.panoptic_seg
-import matplotlib.pyplot as plt
 
 
 class Segmenter:
@@ -38,7 +34,7 @@ class Segmenter:
         modelName = params['model_params']['model_name']
         modelPath = params['model_params']['model_path']
         self.imageSize = params['image_params']['image_size']
-        rawImageTopic = params['ros_topics']['raw_image_topic']
+        mappedImageTopic = params['ros_topics']['mapped_images_topic']
         segImageTopic = params['ros_topics']['segmented_image_topic']
         self.pointPrompt = params['model_params']['point_prompt']
         self.boxPrompt = params['model_params']['box_prompt']
@@ -46,18 +42,23 @@ class Segmenter:
         self.counters = params['model_params']['contour']
 
         # Subscribers
-        rospy.Subscriber(rawImageTopic, Image, self.segmentation)
+        rospy.Subscriber(mappedImageTopic, MappedImages, self.segmentation, queue_size=1, buff_size=2**32)
 
         # Publishers
         self.publisherSeg = rospy.Publisher(
-            segImageTopic, SegResult, queue_size=1)
+            segImageTopic, SegResult, queue_size=1
+        )
+
+        self.test_acc = rospy.Publisher(
+            "/test_acc", Image, queue_size=1
+        )
 
         # ROS Bridge
         self.bridge = CvBridge()
 
         self.init_model()
 
-        print("segmenter node ready")
+        rospy.loginfo("segmenter node ready")
 
     def init_model(self) -> None:
         cfg = get_cfg()
@@ -74,27 +75,29 @@ class Segmenter:
 
         self.metadata = MetadataCatalog.get("coco_2017_val_panoptic")
         
-    def segmentation(self, imageMessage: Image) -> None:
+    def segmentation(self, msg) -> None:
         try:
+            rospy.loginfo("tick")
             # Convert the ROS Image message to a CV2 image
-            cvImage = self.bridge.imgmsg_to_cv2(imageMessage, "bgr8")
+            rgb_image = self.bridge.imgmsg_to_cv2(msg.RGBImage)
+            depth_image = self.bridge.imgmsg_to_cv2(msg.DepthImage)
 
             # Processing
             t = time.time()
-            output = self.predictor(cvImage)
-            print(f"\n\nprocessing: {time.time()-t}")
+            output = self.predictor(rgb_image)
+            rospy.loginfo(f"processing: {time.time()-t}")
 
             # Get the masks of the accepted objects
             t = time.time()
             masks = self._get_masks(output["panoptic_seg"], [0, 56, 60])
-            print(f"sorting: {time.time()-t}")
+            rospy.loginfo(f"sorting: {time.time()-t}")
 
             # Generate the message
             t = time.time()
-            msg = self._generate_message(masks, imageMessage) # change the rgb image to the depth image later
-            print(f"generating message: {time.time()-t}")
+            output_msg = self._generate_message(masks, depth_image)
+            rospy.loginfo(f"generating message: {time.time()-t} \n\n")
 
-            self.publisherSeg.publish(msg)
+            self.publisherSeg.publish(output_msg)
 
             # visu = Visualizer(cvImage, self.metadata).draw_panoptic_seg(masks["panoptic_seg"][0], masks["panoptic_seg"][1])
             # plt.imsave("test.jpg", visu.get_image())
@@ -102,11 +105,21 @@ class Segmenter:
         except CvBridgeError as e:
             rospy.logerr("CvBridge Error: {0}".format(e))
 
+
+    def show_mask(self, mask, img):
+        test = img.copy()
+        for co in mask:
+            test[co.y][co.x] = 10000
+        
+        msg = self.bridge.cv2_to_imgmsg(test)
+        self.test_acc.publish(msg)
+           
+
     def _get_masks(self, output: Tensor, accepted_ids: list) -> dict:
         mask = output[0].tolist()
         anns = output[1]
 
-        masks = {id: [] for id in accepted_ids}
+        masks = {id: {} for id in accepted_ids}
 
         for y in range(len(mask)):
 
@@ -118,26 +131,36 @@ class Segmenter:
                     anns[id-1]["isthing"] and
                     anns[id-1]["category_id"] in accepted_ids
                 ):
-                    masks[anns[id-1]["category_id"]].append((x, y))
+                    instance_id = anns[id-1]["instance_id"]
+                    masks_cat = masks[anns[id-1]["category_id"]]
+
+                    if instance_id not in masks_cat.keys():
+                        masks_cat[instance_id] = []
+
+                    masks_cat[instance_id].append((x, y))
 
         return masks
     
-    def _generate_message(self, masks: dict, image: np.ndarray) -> SegResult:
+    def _generate_message(self, masks: dict, img: Image) -> SegResult:
         msg = SegResult()
-        msg.Image = image
+        msg.Image = self.bridge.cv2_to_imgmsg(img)
         msg.masks = []
 
-        for k in masks.keys():
-            mask = Mask()
-            mask.id = k
-            mask.mask = []
+        for cat in masks.keys():
+            
+            for inst in masks[cat].keys():
 
-            for p in masks[k]:
-                pixel = Pixel()
-                pixel.x, pixel.y = p
-                mask.mask.append(pixel)
+                mask = Mask()
+                mask.category = cat
+                mask.instance = inst
+                mask.mask = []
 
-            msg.masks.append(mask)
+                for p in masks[cat][inst]:
+                    pixel = Pixel()
+                    pixel.x, pixel.y = p
+                    mask.mask.append(pixel)
+
+                msg.masks.append(mask)
 
         return msg
             
