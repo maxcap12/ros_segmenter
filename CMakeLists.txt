@@ -15,6 +15,8 @@ add_message_files(
   Mask.msg
   SegResult.msg
   MappedImages.msg
+  Coordinates.msg 
+  ObjectCoordinates.msg
 )
 
 generate_messages(
