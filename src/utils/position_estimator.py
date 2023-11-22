@@ -1,53 +1,67 @@
-from utils.depth_estimator import estimate_depth
-import time
-from math import sin, radians
+from math import sin, cos, radians
+import numpy as np
+from segmenter_ros2.msg import Pixel, Coordinates, Mask
 
-def estimate_position(area, img):
-    # estimates the position of an object relative to the camera
-    t = time.time()
-    distance = estimate_depth(area, img)
-    print("\n", distance)
-    x1, x2, y1, y2 = _get_boundings(area)
-    
-    center = ((x1 + x2)/2, (y1 + y2)/2)
+darkest = 0
+lightest = 10000
+max_dist = 500 # TBD
+min_dist = 28
+ratio = (max_dist - min_dist) / (lightest - darkest)
+
+def estimate_position(area: Mask, img: np.ndarray, camera_pos: (float)) -> [Coordinates]:
+
     (im_h, im_w) = img.shape
 
-    # we take (0, 0) as the center of the image
-    center = (center[0] - (im_w / 2), center[1] - (im_h / 2))
-
-    print(center)
-
-    # position of the center of the object relative to the camera
-    angle_x = 34.5 * abs(center[0] / (im_w / 2))
-    angle_y = 21 * abs(center[1] / (im_h / 2))
-    center_x = sin(radians(angle_x)) * distance
-    center_y = sin(radians(angle_y)) * distance
-
-    # width and hieght of the object
-    obj_w = (center_x * (x2 - x1)) / abs(center[0]) 
-    obj_h = (center_y * (y2 - y1)) / abs(center[1])
-
-    print(f"estimation {time.time()-t}")
-    return center_x, center_y, distance, obj_w, obj_h
-
-def _get_boundings(area):
-    max_h = area[0].y
-    min_h = area[0].y
-    max_w = area[0].x
-    min_w = area[0].x
-
-    for p in area:
-
-        if p.x < min_w:
-            min_w = p.x
-        elif p.x > max_w:
-            max_w = p.x
-        if p.y < min_h:
-            min_h = p.y
-        elif p.y > max_h:
-            max_h = p.y
-
-    return min_w, max_w, min_h, max_h
+    def get_coordinates(pixel: Pixel, img: np.ndarray) -> Coordinates:
+        """
+        transforms 2d coordinates of a pixel into 3d coordinates using a depth image
+        also sets the origin to the center of the image for easier manipulation later
+        """
+        co = Coordinates()
+        co.x = float(pixel.x - im_w)
+        co.y = float(pixel.y - im_h)
+        co.z = float(img[pixel.y][pixel.x] * ratio)
+        return co
+    
+    def get_relative_coordinates(co: Coordinates) -> Coordinates:
+        """
+        transforms 3d coordinates of a pixel relative to an image into 
+        3d coordinates of this pixel relative to the camera
+        """
+        angle_x = 34.5 * abs(co.x / (im_w / 2))
+        angle_y = 21 * abs(co.y / (im_h / 2))
+        co.x = sin(radians(angle_x)) * co.z
+        co.y = sin(radians(angle_y)) * co.z
+        return co
+    
+    def rotate_position(co: Coordinates, angle: int) -> [Coordinates]:
+        """
+        rotates the coordinates of a pixel on the x-z-plan around the origin
+        """
+        rad_angle = radians(angle)
+        c = cos(rad_angle)
+        s = sin(rad_angle)
+        co.x, co.y = c * co.x - s * co.y, s * co.x + c * co.y
+        return co
+    
+    def add_camera_pos(co, camera_pos):
+        """
+        add the current position of the camera to the position of a pixel
+        """
+        co.x += camera_pos[0]
+        co.y += camera_pos[1]
+        co.z += camera_pos[2]
+        return co
+    
+    return [
+        add_camera_pos(
+            rotate_position(
+                get_relative_coordinates(
+                    get_coordinates(pixel, img)
+                ), 
+                camera_pos[3]
+            ),
+            camera_pos)
+        for pixel in area]
         
 
-        

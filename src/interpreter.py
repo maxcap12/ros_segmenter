@@ -2,14 +2,15 @@
 
 import rospy
 from std_msgs.msg import String
-from segmenter_ros2.msg import SegResult
+from segmenter_ros2.msg import SegResult, ObjectCoordinates
 from utils.position_estimator import estimate_position
 from cv_bridge import CvBridge
 from utils.detected_object import DetectedObject
 
 from temp import init_params
+import time
 
-class Interpreter(object):
+class Interpreter:
     def __init__(self) -> None:
         init_params()
         # Get parameters
@@ -18,6 +19,7 @@ class Interpreter(object):
         segImageTopic = params['ros_topics']['segmented_image_topic']
         self.acceptedObjects = params['interpretor_params']['accepted_objects']
         positionTopic = params['ros_topics']['position_topic']
+        objectInfoTopic = params['ros_topics']['object_info_topic']
 
         # Subscribers
         rospy.Subscriber(
@@ -26,6 +28,11 @@ class Interpreter(object):
 
         rospy.Subscriber(
           positionTopic, String, self._update_position, queue_size=1
+        )
+
+        # Publishers
+        self.obj_info_publisher = rospy.Publisher(
+            objectInfoTopic, ObjectCoordinates, queue_size=1 
         )
 
         # Ros bridge
@@ -41,26 +48,18 @@ class Interpreter(object):
         self.position = msg
 
     def segmentation_callback(self, msg: SegResult) -> None:
-        print("tick")
+
         image = self.bridge.imgmsg_to_cv2(msg.Image)
+        t = time.time()
 
         for mask in msg.masks:
-            (x, y, z, w, h) = estimate_position(mask.mask, image)
-            obj = DetectedObject(x, y, z, w, h, self.position[3])
-
-            if mask.category not in self.objects.keys(): # first detected object of this category
-                self.objects[mask.category] = [obj]
-
-            else:
-                for i in range(len(self.objects[mask.category])):
-                    if self.objects[mask.category][i] == obj: # the object has been detected previously
-                        self.objects[mask.category][i] += obj # merge the previous and new info about the object
-                        break
-                    if i == len(self.objects[mask.category]): # the object has not been detected yet
-                        self.objects[mask.category][i].append(obj)
-          
-        print(f"{sum([len(items) for items in self.objects.values()])} objects detected")
-  
+            obj_msg = ObjectCoordinates()
+            obj_msg.name = "test"
+            obj_msg.points = estimate_position(mask.mask, image, self.position)
+            self.obj_info_publisher.publish(obj_msg)
+    
+        print(time.time() - t)
+        
 
 if __name__ == "__main__":
     # Initialization

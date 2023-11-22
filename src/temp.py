@@ -1,7 +1,6 @@
 import rospy
 
 
-
 def init_params():
     rospy.set_param(
         "~params", 
@@ -16,7 +15,8 @@ def init_params():
                 "segmented_image_topic": "/camera/color/image_segment",
                 "depth_image_topic": "/camera/aligned_depth_to_color/image_raw",
                 "mapped_images_topic": "/mapped_images",
-                "position_topic": "/position"
+                "position_topic": "/position",
+                "object_info_topic": "/image_info"
             },
             "model_params":
             {
