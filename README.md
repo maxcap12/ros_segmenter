@@ -61,10 +61,10 @@ Here you can see the benchmarking results of the work in the table below. Some o
 
 - Finding a realtime Semantic Segmentation framework
   - Benchmarking and comparing
-- Excluding unnecessary segments
+- Excluding unnecessary segments (done)
 - Removing logs
-- Providing segment information
-- Searching for semantic entities (object detection)
+- Providing segment information (done)
+- Searching for semantic entities (object detection) (done)
 - Merging it with ROS-based ORB-SLAM for mapping
 - Testing with a robot
   - Drone/Spot
