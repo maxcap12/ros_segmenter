@@ -6,6 +6,7 @@ from segmenter_ros2.msg import MappedImages
 from time import sleep
 
 from temp import init_params
+from cv_bridge import CvBridge
 
 class imageMapper:
     def __init__(self) -> None:

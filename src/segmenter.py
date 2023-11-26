@@ -98,9 +98,8 @@ class Segmenter:
             rospy.loginfo(f"generating message: {time.time()-t} \n\n")
 
             self.publisherSeg.publish(output_msg)
-
-            # visu = Visualizer(cvImage, self.metadata).draw_panoptic_seg(masks["panoptic_seg"][0], masks["panoptic_seg"][1])
-            # plt.imsave("test.jpg", visu.get_image())
+            visu = Visualizer(rgb_image, self.metadata).draw_panoptic_seg(output["panoptic_seg"][0], output["panoptic_seg"][1])
+            self.test_acc.publish(self.bridge.cv2_to_imgmsg(visu.get_image(), "rgb8"))
 
         except CvBridgeError as e:
             rospy.logerr("CvBridge Error: {0}".format(e))

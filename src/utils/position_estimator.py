@@ -2,11 +2,7 @@ from math import sin, cos, radians
 import numpy as np
 from segmenter_ros2.msg import Pixel, Coordinates, Mask
 
-darkest = 0
-lightest = 10000
-max_dist = 500 # TBD
-min_dist = 28
-ratio = (max_dist - min_dist) / (lightest - darkest)
+RATIO = 0.1
 
 def estimate_position(area: Mask, img: np.ndarray, camera_pos: (float)) -> [Coordinates]:
 
@@ -20,7 +16,7 @@ def estimate_position(area: Mask, img: np.ndarray, camera_pos: (float)) -> [Coor
         co = Coordinates()
         co.x = float(pixel.x - im_w)
         co.y = float(pixel.y - im_h)
-        co.z = float(img[pixel.y][pixel.x] * ratio)
+        co.z = float(img[pixel.y][pixel.x] * RATIO)
         return co
     
     def get_relative_coordinates(co: Coordinates) -> Coordinates:
@@ -62,6 +58,7 @@ def estimate_position(area: Mask, img: np.ndarray, camera_pos: (float)) -> [Coor
                 camera_pos[3]
             ),
             camera_pos)
-        for pixel in area]
+        for pixel in area
+        if img[pixel.y][pixel.x]]
         
 

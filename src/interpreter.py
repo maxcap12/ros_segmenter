@@ -56,9 +56,10 @@ class Interpreter:
             obj_msg = ObjectCoordinates()
             obj_msg.name = "test"
             obj_msg.points = estimate_position(mask.mask, image, self.position)
+            print(obj_msg.points[len(obj_msg.points)//2])
             self.obj_info_publisher.publish(obj_msg)
     
-        print(time.time() - t)
+        rospy.loginfo(f"computing time: {time.time() - t}")
         
 
 if __name__ == "__main__":
