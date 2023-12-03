@@ -24,6 +24,51 @@ Install the required `Python` libraries for running this program using the comma
 pip install -r src/requirements.txt
 ```
 
+### III. Running the program
+
+**Run with the realsense camera**
+
+```bash
+roslaunch realsense2_camera rs_camera.launch align_depth:=true
+```
+
+**Or from a rosbag file**
+```bash
+roscore
+```
+```bash
+rosbag play <file> --clock
+```
+
+**Initialise the main nodes** (the name of the packager may change):
+
+**Segmenter node**
+```bash
+rosrun segmenter_ros2 segmenter.py
+```
+
+**Interpreter node**
+```bash
+rosrun segmenter_ros2 interpreter.py
+```
+**To run the visualization** (for demo)
+```bash
+rosrun tf static_transform_publisher 0 0 0 0 0 0 1 map my_frame 10
+```
+```bash
+rosrun segmenter_ros2 visualization.py
+```
+```bash
+rosrun rviz rviz
+```
+In the rviz window, click *add* -> *MarkerArray* and set the *marker topic* to `/visualization`
+
+Then, run the image mapper node to start the program:
+```bash
+rosrun segmenter_ros2 imageMapper.py
+```
+
+
 ## 🔨 Configurations
 
 | Main Category  | Parameter               | Default        | Description                  |
