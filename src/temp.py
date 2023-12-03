@@ -16,7 +16,8 @@ def init_params():
                 "depth_image_topic": "/camera/aligned_depth_to_color/image_raw",
                 "mapped_images_topic": "/mapped_images",
                 "position_topic": "/position",
-                "object_info_topic": "/image_info"
+                "object_info_topic": "/image_info",
+                "visu_topic": "/visualization"
             },
             "model_params":
             {

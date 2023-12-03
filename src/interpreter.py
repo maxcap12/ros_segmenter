@@ -55,7 +55,7 @@ class Interpreter:
         for mask in msg.masks:
             obj_msg = ObjectCoordinates()
             obj_msg.name = "test"
-            obj_msg.points = estimate_position(mask.mask, image, self.position)
+            obj_msg.points = estimate_position([mask.mask[i] for i in range(0, len(mask.mask), 5)], image, self.position)
             print(obj_msg.points[len(obj_msg.points)//2])
             self.obj_info_publisher.publish(obj_msg)
     

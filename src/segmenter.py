@@ -1,5 +1,6 @@
 #!/usr/bin/python3.8
 
+# semantic map ros
 import rospy
 from sensor_msgs.msg import Image
 from segmenter_ros2.msg import SegResult, Mask, Pixel, MappedImages
