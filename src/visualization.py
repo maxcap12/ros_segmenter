@@ -56,9 +56,9 @@ class Visialization:
             marker.color.g = 0.
             marker.color.b = 0.
             marker.pose.orientation.w = 1.0
-            marker.pose.position.x = point.x / 10
-            marker.pose.position.y = point.y / 10
-            marker.pose.position.z = point.z / 10
+            marker.pose.position.x = point.x / 20
+            marker.pose.position.y = point.z / 20
+            marker.pose.position.z = point.y / 20
             marker.id = len(markerArray.markers)
 
             markerArray.markers.append(marker)
