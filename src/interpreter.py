@@ -4,6 +4,7 @@ import rospy
 from std_msgs.msg import String
 from segmenter_ros2.msg import SegResult, ObjectCoordinates
 from utils.position_estimator import estimate_position
+from utils.postprocess import postprocess1
 from cv_bridge import CvBridge
 from utils.detected_object import DetectedObject
 
@@ -38,7 +39,8 @@ class Interpreter:
         # Ros bridge
         self.bridge = CvBridge()
 
-        self.position = (0, 0, 0, 0) # x, y, z, angle
+        self.position = (0., 0., 0.) # x, y, z
+        self.angle = (0., 0., 0.)
 
         self.objects = {}
 
@@ -55,8 +57,9 @@ class Interpreter:
         for mask in msg.masks:
             obj_msg = ObjectCoordinates()
             obj_msg.name = "test"
-            obj_msg.points = estimate_position([mask.mask[i] for i in range(0, len(mask.mask), 5)], image, self.position)
-            print(obj_msg.points[len(obj_msg.points)//2])
+            positions = estimate_position([mask.mask[i] for i in range(0, len(mask.mask), 5)], image, self.position, self.angle)
+            obj_msg.points = postprocess1(positions, 1)
+            print(len(obj_msg.points))
             self.obj_info_publisher.publish(obj_msg)
     
         rospy.loginfo(f"computing time: {time.time() - t}")

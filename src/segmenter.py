@@ -73,9 +73,9 @@ class Segmenter:
         # cfg.MODEL.IGNORE_VALUE = -1
 
         self.predictor = DefaultPredictor(cfg)
-
-        self.metadata = MetadataCatalog.get("coco_2017_val_panoptic")
         
+        self.metadata = MetadataCatalog.get("coco_2017_val_panoptic")
+
     def segmentation(self, msg) -> None:
         try:
             rospy.loginfo("tick")
@@ -90,7 +90,7 @@ class Segmenter:
 
             # Get the masks of the accepted objects
             t = time.time()
-            masks = self._get_masks(output["panoptic_seg"], [0, 56, 60])
+            masks = self._get_masks(output["panoptic_seg"], [56])
             rospy.loginfo(f"sorting: {time.time()-t}")
 
             # Generate the message
