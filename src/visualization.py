@@ -36,7 +36,6 @@ class Visialization:
         self.visuPublisher.publish(markerArray)
 
     def generate_vis(self, msg):
-        if self.stop: return
 
         markerArray = MarkerArray()
 
@@ -45,7 +44,7 @@ class Visialization:
         for i in range(len(msg.points)):
             point = msg.points[i]
             marker = Marker()
-            marker.header.frame_id = "my_frame"
+            marker.header.frame_id = "world"
             marker.type = marker.SPHERE
             marker.action = marker.ADD
             marker.scale.x = 0.1
@@ -67,8 +66,6 @@ class Visialization:
                 print(i//100)
                 self.visuPublisher.publish(markerArray)
                 time.sleep(0.1)
-
-        self.stop = True
         
         rospy.loginfo("object visualization finished")
 

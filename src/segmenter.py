@@ -96,6 +96,8 @@ class Segmenter:
             # Generate the message
             t = time.time()
             output_msg = self._generate_message(masks, depth_image)
+            output_msg.pos = msg.pos
+            output_msg.angle = msg.angle
             rospy.loginfo(f"generating message: {time.time()-t} \n\n")
 
             self.publisherSeg.publish(output_msg)
@@ -107,11 +109,11 @@ class Segmenter:
 
 
     def show_mask(self, mask, img):
-        test = img.copy()
+        new = img.copy()
         for co in mask:
-            test[co.y][co.x] = 10000
+            new[co.y][co.x] = 10000
         
-        msg = self.bridge.cv2_to_imgmsg(test)
+        msg = self.bridge.cv2_to_imgmsg(new)
         self.test_acc.publish(msg)
            
 
