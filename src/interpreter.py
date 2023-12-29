@@ -62,7 +62,7 @@ class Interpreter:
 
         for mask in msg.masks:
             obj_msg = ObjectCoordinates()
-            obj_msg.name = "test"
+            obj_msg.name = str(mask.categroy)
             positions = estimate_position([mask.mask[i] for i in range(0, len(mask.mask), 5)], image, self.position, self.angle)
             obj_msg.points = postprocess1(positions, 3)
             print(len(obj_msg.points))
